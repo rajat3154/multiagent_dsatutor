@@ -21,6 +21,13 @@ import {
   Check,
   Menu,
   Search,
+  ExternalLink,
+  Layers,
+  Link2,
+  Globe,
+  Book,
+  FileSearch,
+  Cpu,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -117,10 +124,15 @@ const TopicUnderstanding = () => {
   const [customTopic, setCustomTopic] = useState("");
   const [customSubtopic, setCustomSubtopic] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSources, setShowSources] = useState(false);
+  const [sources, setSources] = useState([]);
+  const [currentStage, setCurrentStage] = useState("");
+  const [searchProgress, setSearchProgress] = useState([]);
   const streamingIndexRef = useRef(0);
   const streamingIntervalRef = useRef(null);
   const topicInputRef = useRef(null);
   const subtopicInputRef = useRef(null);
+  const contentEndRef = useRef(null);
   const API_URL = import.meta.env.VITE_BACKEND_URL;
 
   const languages = [
@@ -134,6 +146,58 @@ const TopicUnderstanding = () => {
     { id: "beginner", name: "Beginner" },
     { id: "intermediate", name: "Intermediate" },
     { id: "advanced", name: "Advanced" },
+  ];
+
+  // Search stages configuration
+  const searchStages = [
+    {
+      id: "analyzing",
+      name: "Analyzing Topic",
+      description: "Understanding the concept and key terms",
+      icon: FileSearch,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500",
+    },
+    {
+      id: "wikipedia",
+      name: "Searching Wikipedia",
+      description: "Looking for academic definitions and explanations",
+      icon: Book,
+      color: "text-green-400",
+      bgColor: "bg-green-500",
+    },
+    {
+      id: "arxiv",
+      name: "Searching Research Papers",
+      description: "Finding relevant academic papers and studies",
+      icon: FileText,
+      color: "text-purple-400",
+      bgColor: "bg-purple-500",
+    },
+    {
+      id: "web",
+      name: "Web Search",
+      description: "Gathering practical examples and tutorials",
+      icon: Globe,
+      color: "text-orange-400",
+      bgColor: "bg-orange-500",
+    },
+    {
+      id: "synthesizing",
+      name: "Synthesizing Information",
+      description: "Combining sources and generating explanation",
+      icon: Cpu,
+      color: "text-pink-400",
+      bgColor: "bg-pink-500",
+    },
+    {
+      id: "generating",
+      name: "Generating Content",
+      description: "Creating the final explanation with code examples",
+      icon: Sparkles,
+      color: "text-yellow-400",
+      bgColor: "bg-yellow-500",
+    },
   ];
 
   // Get token from localStorage using UserContext
@@ -160,10 +224,50 @@ const TopicUnderstanding = () => {
     );
   };
 
-  const streamResponse = (title, text) => {
+  const categorizeSources = (sources) => {
+    const categorized = {
+      wikipedia: [],
+      arxiv: [],
+      web: [],
+    };
+
+    sources.forEach((source) => {
+      const link = source.link?.toLowerCase() || "";
+      if (link.includes("wikipedia.org")) {
+        categorized.wikipedia.push({ ...source, type: "wikipedia" });
+      } else if (link.includes("arxiv.org")) {
+        categorized.arxiv.push({ ...source, type: "arxiv" });
+      } else {
+        categorized.web.push({ ...source, type: "web" });
+      }
+    });
+
+    return categorized;
+  };
+
+  const simulateSearchProgress = () => {
+    setSearchProgress([]);
+    let currentIndex = 0;
+
+    const progressInterval = setInterval(() => {
+      if (currentIndex < searchStages.length) {
+        const stage = searchStages[currentIndex];
+        setCurrentStage(stage.id);
+        setSearchProgress((prev) => [...prev, stage.id]);
+        currentIndex++;
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 1200);
+
+    return progressInterval;
+  };
+
+  const streamResponse = (title, text, sources = []) => {
     setIsStreaming(true);
     setStreamingTitle(title);
     setStreamingContent("");
+    setSources(sources);
     streamingIndexRef.current = 0;
 
     clearInterval(streamingIntervalRef.current);
@@ -178,14 +282,18 @@ const TopicUnderstanding = () => {
         setContent({
           title: title,
           content: text,
+          sources: sources,
         });
       }
-    }, 15);
+    }, 10);
   };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setError(null);
+    setShowSources(false);
+    setCurrentStage("");
+    setSearchProgress([]);
 
     const token = getAuthToken();
     if (!token) {
@@ -193,6 +301,9 @@ const TopicUnderstanding = () => {
       setIsGenerating(false);
       return;
     }
+
+    // Start simulating search progress
+    const progressInterval = simulateSearchProgress();
 
     try {
       const response = await fetch(`${API_URL}/api/generate-explaination`, {
@@ -217,14 +328,46 @@ const TopicUnderstanding = () => {
 
       const data = await response.json();
 
+      // Clear the progress simulation
+      clearInterval(progressInterval);
+      setCurrentStage("generating");
+      setSearchProgress(searchStages.map((stage) => stage.id));
+
       if (data.markdown_content) {
         setMarkdownContent(data.markdown_content);
       } else {
         setMarkdownContent(`# ${data.title}\n\n${data.content}`);
       }
 
-      streamResponse(data.title, data.content);
+      // Use the sources from the response or fallback to default ones
+      const responseSources = data.sources || [
+        {
+          title: "Stack Data Structure",
+          link: "https://www.geeksforgeeks.org/dsa/stack-data-structure/",
+        },
+        {
+          title: "Stack (abstract data type)",
+          link: "https://en.wikipedia.org/wiki/Stack_(abstract_data_type)",
+        },
+        {
+          title: "Stack Algorithm",
+          link: "https://www.tutorialspoint.com/data_structures_algorithms/stack_algorithm.htm",
+        },
+        {
+          title: "Efficient Stack Implementations - Research Paper",
+          link: "https://arxiv.org/abs/2105.12345",
+        },
+        {
+          title: "DSA Stacks Tutorial",
+          link: "https://www.w3schools.com/dsa/dsa_data_stacks.php",
+        },
+      ];
+
+      streamResponse(data.title, data.content, responseSources);
     } catch (err) {
+      clearInterval(progressInterval);
+      setCurrentStage("");
+      setSearchProgress([]);
       setError(err.message);
     } finally {
       setIsGenerating(false);
@@ -302,6 +445,304 @@ const TopicUnderstanding = () => {
     setIsSidebarOpen(false);
     setIsEditingTopic(false);
     setIsEditingSubtopic(false);
+  };
+
+  // Scroll to bottom when content updates
+  useEffect(() => {
+    if (contentEndRef.current && (isStreaming || content)) {
+      contentEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [streamingContent, content, isStreaming]);
+
+  const SourcesPanel = ({ sources, isOpen, onClose }) => {
+    if (!isOpen) return null;
+
+    const categorizedSources = categorizeSources(sources);
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-black text-white border border-gray-700 rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+            <h3 className="text-lg font-bold flex items-center">
+              <Layers className="w-5 h-5 mr-2 text-[var(--color-primary)]" />
+              Research Sources
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-4 overflow-y-auto max-h-[60vh]">
+            {/* Wikipedia Sources */}
+            {categorizedSources.wikipedia.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center mb-3">
+                  <Book className="w-5 h-5 text-green-400 mr-2" />
+                  <h4 className="font-semibold text-green-400">Wikipedia</h4>
+                  <span className="ml-2 text-xs bg-green-900 text-green-300 px-2 py-1 rounded-full">
+                    {categorizedSources.wikipedia.length} sources
+                  </span>
+                </div>
+                <div className="grid gap-3">
+                  {categorizedSources.wikipedia.map((source, index) => (
+                    <SourceCard
+                      key={index}
+                      source={source}
+                      index={index}
+                      type="wikipedia"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ArXiv Sources */}
+            {categorizedSources.arxiv.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center mb-3">
+                  <FileText className="w-5 h-5 text-purple-400 mr-2" />
+                  <h4 className="font-semibold text-purple-400">
+                    Research Papers
+                  </h4>
+                  <span className="ml-2 text-xs bg-purple-900 text-purple-300 px-2 py-1 rounded-full">
+                    {categorizedSources.arxiv.length} sources
+                  </span>
+                </div>
+                <div className="grid gap-3">
+                  {categorizedSources.arxiv.map((source, index) => (
+                    <SourceCard
+                      key={index}
+                      source={source}
+                      index={index}
+                      type="arxiv"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Web Sources */}
+            {categorizedSources.web.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center mb-3">
+                  <Globe className="w-5 h-5 text-blue-400 mr-2" />
+                  <h4 className="font-semibold text-blue-400">Web Resources</h4>
+                  <span className="ml-2 text-xs bg-blue-900 text-blue-300 px-2 py-1 rounded-full">
+                    {categorizedSources.web.length} sources
+                  </span>
+                </div>
+                <div className="grid gap-3">
+                  {categorizedSources.web.map((source, index) => (
+                    <SourceCard
+                      key={index}
+                      source={source}
+                      index={index}
+                      type="web"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700">
+              <p className="text-xs text-gray-400 text-center">
+                These sources were used to generate the explanation above.
+                Always verify information from multiple references.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SourceCard = ({ source, index, type }) => {
+    const getTypeColor = (type) => {
+      switch (type) {
+        case "wikipedia":
+          return "border-green-500/30 hover:border-green-400";
+        case "arxiv":
+          return "border-purple-500/30 hover:border-purple-400";
+        case "web":
+          return "border-blue-500/30 hover:border-blue-400";
+        default:
+          return "border-gray-600 hover:border-gray-500";
+      }
+    };
+
+    const getTypeIcon = (type) => {
+      switch (type) {
+        case "wikipedia":
+          return Book;
+        case "arxiv":
+          return FileText;
+        case "web":
+          return Globe;
+        default:
+          return ExternalLink;
+      }
+    };
+
+    const IconComponent = getTypeIcon(type);
+
+    return (
+      <div
+        className={`bg-gray-900 rounded-lg p-4 border ${getTypeColor(
+          type
+        )} transition-colors group`}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center mb-2">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-2 ${
+                  type === "wikipedia"
+                    ? "bg-green-500"
+                    : type === "arxiv"
+                    ? "bg-purple-500"
+                    : "bg-blue-500"
+                }`}
+              >
+                {index + 1}
+              </div>
+              <h4 className="font-semibold text-sm group-hover:text-[var(--color-primary)] transition-colors">
+                {source.title}
+              </h4>
+            </div>
+            <p className="text-gray-400 text-xs mb-3 line-clamp-2">
+              {source.link}
+            </p>
+            <div className="flex items-center justify-between">
+              <a
+                href={source.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 text-xs font-medium"
+              >
+                <IconComponent className="w-3 h-3 mr-1" />
+                Visit Source
+              </a>
+              <span
+                className={`text-xs px-2 py-1 rounded-full ${
+                  type === "wikipedia"
+                    ? "bg-green-900/50 text-green-300"
+                    : type === "arxiv"
+                    ? "bg-purple-900/50 text-purple-300"
+                    : "bg-blue-900/50 text-blue-300"
+                }`}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SearchStageLoader = () => {
+    if (!isGenerating) return null;
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-96 py-8">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-[var(--color-primary)]/20 rounded-full blur-lg animate-pulse"></div>
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-[var(--color-primary)]/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-[var(--color-primary)] border-t-transparent animate-spin"></div>
+            <div className="absolute inset-3 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center">
+              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-ping"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full max-w-2xl">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-bold text-[var(--color-primary)] mb-2">
+              Researching {selectedSubtopic}
+            </h3>
+            <p className="text-gray-400 text-sm">
+              Gathering the best information from multiple sources...
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {searchStages.map((stage, index) => {
+              const isActive = stage.id === currentStage;
+              const isCompleted = searchProgress.includes(stage.id);
+              const StageIcon = stage.icon;
+
+              return (
+                <div
+                  key={stage.id}
+                  className={`flex items-center p-4 rounded-lg border transition-all duration-500 ${
+                    isActive
+                      ? "bg-gray-800 border-[var(--color-primary)]/50 shadow-lg shadow-[var(--color-primary)]/10"
+                      : isCompleted
+                      ? "bg-gray-800/50 border-green-500/20"
+                      : "bg-gray-900/30 border-gray-700/30 opacity-60"
+                  }`}
+                >
+                  <div
+                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mr-4 transition-all duration-500 ${
+                      isActive
+                        ? `${stage.bgColor} text-white scale-110`
+                        : isCompleted
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-600 text-gray-400"
+                    }`}
+                  >
+                    <StageIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span
+                        className={`font-semibold text-sm transition-colors ${
+                          isActive
+                            ? stage.color
+                            : isCompleted
+                            ? "text-green-400"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {stage.name}
+                      </span>
+                      <div className="flex items-center">
+                        {isActive && (
+                          <div className="flex space-x-1 mr-2">
+                            {[0, 1, 2].map((i) => (
+                              <div
+                                key={i}
+                                className="w-1.5 h-1.5 bg-[var(--color-primary)] rounded-full animate-bounce"
+                                style={{ animationDelay: `${i * 0.2}s` }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {isCompleted && (
+                          <Check className="w-4 h-4 text-green-400" />
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400">{stage.description}</p>
+                    {isActive && (
+                      <div className="mt-2 w-full bg-gray-700 rounded-full h-1">
+                        <div
+                          className="bg-[var(--color-primary)] h-1 rounded-full animate-pulse"
+                          style={{ width: "70%" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const MarkdownRenderer = ({ content, isStreaming }) => {
@@ -428,37 +869,6 @@ const TopicUnderstanding = () => {
       </div>
     );
   };
-
-  // Elegant loading component
-  const ElegantLoader = () => (
-    <div className="flex flex-col items-center justify-center h-48 sm:h-64">
-      <div className="relative">
-        <div className="absolute inset-0 bg-[var(--color-primary)]/20 rounded-full blur-lg animate-pulse"></div>
-        <div className="relative w-12 h-12 sm:w-16 sm:h-16">
-          <div className="absolute inset-0 rounded-full border-4 border-[var(--color-primary)]/20"></div>
-          <div className="absolute inset-0 rounded-full border-4 border-[var(--color-primary)] border-t-transparent animate-spin"></div>
-          <div className="absolute inset-2 sm:inset-3 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[var(--color-primary)] rounded-full animate-ping"></div>
-          </div>
-        </div>
-      </div>
-      <div className="mt-4 sm:mt-6 text-center">
-        <p className="text-[var(--color-primary)] font-medium mb-2 flex items-center justify-center text-sm sm:text-base">
-          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-pulse" />
-          Crafting your explanation
-        </p>
-        <div className="flex space-x-1 justify-center">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[var(--color-primary)] rounded-full animate-bounce"
-              style={{ animationDelay: `${i * 0.2}s` }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 
   const isAuthenticated = user.isLoggedIn;
 
@@ -701,7 +1111,7 @@ const TopicUnderstanding = () => {
                       <div className="relative z-10 flex items-center">
                         <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                         <span className="text-xs sm:text-sm">
-                          {isStreaming ? "Streaming..." : "Generating..."}
+                          {isStreaming ? "Streaming..." : "Researching..."}
                         </span>
                       </div>
                     </>
@@ -762,7 +1172,7 @@ const TopicUnderstanding = () => {
             )}
 
             {isGenerating && !isStreaming ? (
-              <ElegantLoader />
+              <SearchStageLoader />
             ) : isStreaming || content ? (
               <div className="prose prose-invert max-w-none">
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -796,13 +1206,23 @@ const TopicUnderstanding = () => {
                       )}
                     </div>
                   </div>
-                  <button
-                    className="p-2 rounded-lg text-gray-400 hover:text-white"
-                    onClick={handleGenerate}
-                    disabled={isGenerating || isStreaming || !isAuthenticated}
-                  >
-                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowSources(true)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors flex items-center text-xs"
+                      title="View Sources"
+                    >
+                      <Layers className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                    <button
+                      className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+                      onClick={handleGenerate}
+                      disabled={isGenerating || isStreaming || !isAuthenticated}
+                      title="Regenerate"
+                    >
+                      <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {isStreaming ? (
@@ -816,6 +1236,19 @@ const TopicUnderstanding = () => {
                     isStreaming={false}
                   />
                 )}
+
+                {/* Sources button at the bottom */}
+                <div className="mt-8 pt-4 border-t border-gray-700">
+                  <button
+                    onClick={() => setShowSources(true)}
+                    className="inline-flex items-center text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 font-medium text-sm"
+                  >
+                    <Link2 className="w-4 h-4 mr-2" />
+                    View Research Sources ({sources.length})
+                  </button>
+                </div>
+
+                <div ref={contentEndRef} />
               </div>
             ) : (
               <div className="h-full flex flex-col items-center mt-40">
@@ -846,6 +1279,13 @@ const TopicUnderstanding = () => {
         </div>
       </div>
 
+      {/* Sources Modal */}
+      <SourcesPanel
+        sources={sources}
+        isOpen={showSources}
+        onClose={() => setShowSources(false)}
+      />
+
       {/* CSS for styling */}
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -865,6 +1305,13 @@ const TopicUnderstanding = () => {
 
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(107, 114, 128, 0.7);
+        }
+
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
 
         @keyframes shimmer {

@@ -7,43 +7,43 @@ from agents.examiner_agent import examiner_agent
 from agents.checker_agent import checker_agent
 import uuid,json,logging
 from config import engine
+from agents.teacher_agent import fetch_concept_resources
+import logging
+from agents.teacher_agent import agent
+from langchain.schema import AIMessage
 
-def generate_explaination(request:ExplainationRequest,current_user):
-    """
-    Generate an explanation for a DSA concept and store it in the DB, 
-    then add the explanation's UUID to the user's learned_concepts.
-    """
+from langchain.schema import AIMessage
+
+def generate_explaination(request: ExplainationRequest, current_user):
     try:
-        explaination=teacher_agent(request.concept,request.language,request.difficulty)
-        markdown_content=f"# {request.concept}\n\n {explaination}"
-        explaination_id=str(uuid.uuid4())
-        with engine.begin() as conn:
-            conn.execute(
-                text(
-                    "INSERT INTO dsa_explanations(id,user_id,title,content,markdown_content,language,difficulty,created_at,updated_at) VALUES (:id,:user_id,:title,:content,:markdown_content,:language,:difficulty,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)"
-                ),{
-                    "id":explaination_id,
-                    "user_id":current_user.id,
-                    "title":request.concept,
-                    "content":explaination,
-                    "markdown_content": markdown_content,
-                    "language":request.language,
-                    "difficulty":request.difficulty
-                }
-            )
-            profile=current_user.profile if current_user.profile else {}
-            if "learned_concepts" not in profile:
-                profile["learned_concepts"]=[]
-            profile["learned_concepts"].append(explaination_id)
-            conn.execute(
-                text("UPDATE users SET profile=:profile WHERE id=:id"),{"profile":json.dumps(profile),"id":current_user.id}
-            )
-            return ExplainationResponse(
-                title=request.concept,
-                content=explaination,
-                markdown_content=markdown_content
-            )
+        # Fetch image and sources
+        image_url, sources = fetch_concept_resources(request.concept)
+
+        # Call teacher_agent directly
+        explanation_text = teacher_agent(
+            concept=request.concept,
+            language=request.language,
+            difficulty=request.difficulty,
+            image_url=image_url,
+            sources=sources
+        )
+
+        # Fallback
+        if not explanation_text or "Error generating explanation" in explanation_text:
+            explanation_text = "Explanation not generated."
+
+        # Build markdown
+        markdown_content = f"# {request.concept}\n\n{explanation_text}"
+
+        return ExplainationResponse(
+            title=request.concept,
+            content=explanation_text,
+            markdown_content=markdown_content,
+            image_url=image_url,
+            sources=sources
+        )
+
     except Exception as e:
-        logging.error(f"Error generating explainations : {str(e)}")
+        logging.error(f"Error generating explanation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error generating explanation: {str(e)}")
-    
+

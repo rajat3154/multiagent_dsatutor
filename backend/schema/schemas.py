@@ -25,15 +25,18 @@ class Query(BaseModel):
 #-------------------Query----------------------------#
 #-------------------Explaination Request----------------------------#
 class ExplainationRequest(BaseModel):
-     concept:str
-     language:str="python"
-     difficulty:str="beginner"
+    concept: str
+    language: str = "python"
+    difficulty: str = "beginner"
 #-------------------Explaination Request----------------------------#
 #-------------------Explaination Response----------------------------#
 class ExplainationResponse(BaseModel):
-     title:str
-     content:str
-     markdown_content:Optional[str]=None
+    title: str
+    content: str
+    markdown_content: Optional[str] = None
+    image_url: Optional[str] = None
+    sources: Optional[List[Dict[str, str]]] = None
+
 #-------------------Explaination Response----------------------------#
 #-------------------Problem Request----------------------------#
 class ProblemRequest(BaseModel):
