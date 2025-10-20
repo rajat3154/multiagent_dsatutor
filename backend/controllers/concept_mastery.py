@@ -10,9 +10,7 @@ from config import engine
 from agents.teacher_agent import fetch_concept_resources
 import logging
 from agents.teacher_agent import agent
-from langchain.schema import AIMessage
 
-from langchain.schema import AIMessage
 
 def generate_explaination(request: ExplainationRequest, current_user):
     try:
