@@ -39,6 +39,10 @@ const appRouter = createBrowserRouter([
     path: "/quizzes",
     element: <QuizPage />,
   },
+  {
+    path: "/aimentor",
+    element: <AIMentor />,
+  },
 ]);
 
 function App() {
@@ -64,7 +68,7 @@ function App() {
           },
         }}
       />
-      <AIMentor />
+
     </>
   );
 }
