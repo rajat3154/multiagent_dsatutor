@@ -61,7 +61,7 @@ const applyTheme = () => {
 
 const AIMentor = () => {
   const { user } = useContext(UserContext);
-  const [activeMode, setActiveMode] = useState("learning");
+  const [activeMode, setActiveMode] = useState(null);
   const [query, setQuery] = useState("");
   const [image, setImage] = useState(null);
   const [file, setFile] = useState(null);
@@ -887,58 +887,108 @@ const AIMentor = () => {
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             {!activeMode ? (
-              // Mode Selection Cards
-              <div className="h-full flex items-center justify-center p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
-                  {/* Doubt Solving Card */}
+              // Enhanced Mode Selection Cards
+              <div className="h-full flex items-center justify-center p-4 md:p-6 lg:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 lg:gap-12 w-full max-w-6xl">
+                  {/* Doubt Solving Card - Enhanced */}
                   <div
                     onClick={() => setActiveMode("doubt")}
-                    className="group cursor-pointer"
+                    className="group cursor-pointer transform transition-all duration-300 hover:scale-105"
                   >
-                    <div className="bg-gray-950 rounded-xl p-6 border border-gray-800 hover:border-[var(--color-primary)]/50 transition-colors h-full">
+                    <div className="bg-black rounded-3xl p-8 md:p-10 border-2 border-gray-800 hover:border-[var(--color-primary)]/60 transition-all duration-300 h-full shadow-2xl hover:shadow-[var(--color-primary)]/10">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-950 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[var(--color-primary)]/20 transition-colors">
-                          <MessageSquare className="w-8 h-8 text-[var(--color-primary)]" />
+                        {/* Enhanced Icon Container */}
+                        <div className="w-24 h-24 bg-gradient-to-br from-gray-900 to-[var(--color-primary)]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:from-[var(--color-primary)]/20 group-hover:to-[var(--color-primary)]/5 transition-all duration-300 border border-gray-800 group-hover:border-[var(--color-primary)]/30 shadow-lg">
+                          <MessageSquare className="w-12 h-12 text-[var(--color-primary)] group-hover:scale-110 transition-transform duration-300" />
                         </div>
-                        <h3 className="text-xl font-bold mb-3">
+                        
+                        {/* Enhanced Title */}
+                        <h3 className="text-2xl md:text-3xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                           Doubt Solving
                         </h3>
-                        <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-                          Get instant help with coding problems, debugging, and
-                          concept explanations with step-by-step guidance.
+                        
+                        {/* Enhanced Description */}
+                        <p className="text-gray-400 text-base md:text-lg mb-6 leading-relaxed">
+                          Get instant, personalized help with coding problems, debugging, 
+                          and concept explanations with step-by-step guidance and real-time solutions.
                         </p>
-                        <div className="flex items-center justify-center space-x-1 text-[var(--color-primary)] group-hover:text-[var(--color-primary)]/80 transition-colors">
-                          <span className="font-medium text-sm">
-                            Start Solving
-                          </span>
-                          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+
+                        {/* Feature Highlights */}
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>Code Debugging</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>File Upload</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>Step-by-Step</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>Real-time Help</span>
+                          </div>
+                        </div>
+
+                        {/* Enhanced CTA */}
+                        <div className="flex items-center justify-center space-x-2 text-[var(--color-primary)] group-hover:text-[var(--color-primary)]/80 transition-colors">
+                          <span className="font-semibold text-lg">Start Solving</span>
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Learning Path Card */}
+                  {/* Learning Path Card - Enhanced */}
                   <div
                     onClick={() => setActiveMode("learning")}
-                    className="group cursor-pointer"
+                    className="group cursor-pointer transform transition-all duration-300 hover:scale-105"
                   >
-                    <div className="bg-gray-950 rounded-xl p-6 border border-gray-800 hover:border-[var(--color-primary)]/50 transition-colors h-full">
+                    <div className="bg-black rounded-3xl p-8 md:p-10 border-2 border-gray-800 hover:border-[var(--color-primary)]/60 transition-all duration-300 h-full shadow-2xl hover:shadow-[var(--color-primary)]/10">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-gray-950 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:bg-[var(--color-primary)]/20 transition-colors">
-                          <BookMarked className="w-8 h-8 text-[var(--color-primary)]" />
+                        {/* Enhanced Icon Container */}
+                        <div className="w-24 h-24 bg-gradient-to-br from-gray-900 to-[var(--color-primary)]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:from-[var(--color-primary)]/20 group-hover:to-[var(--color-primary)]/5 transition-all duration-300 border border-gray-800 group-hover:border-[var(--color-primary)]/30 shadow-lg">
+                          <BookMarked className="w-12 h-12 text-[var(--color-primary)] group-hover:scale-110 transition-transform duration-300" />
                         </div>
-                        <h3 className="text-xl font-bold mb-3">
+                        
+                        {/* Enhanced Title */}
+                        <h3 className="text-2xl md:text-3xl font-bold mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                           Learning Path
                         </h3>
-                        <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-                          Create personalized learning journeys with structured
-                          plans, curated resources, and practice exercises.
+                        
+                        {/* Enhanced Description */}
+                        <p className="text-gray-400 text-base md:text-lg mb-6 leading-relaxed">
+                          Create personalized learning journeys with structured plans, 
+                          curated resources, practice exercises, and progress tracking.
                         </p>
-                        <div className="flex items-center justify-center space-x-1 text-[var(--color-primary)] group-hover:text-[var(--color-primary)]/80 transition-colors">
-                          <span className="font-medium text-sm">
-                            Start Learning
-                          </span>
-                          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+
+                        {/* Feature Highlights */}
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>Structured Plans</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>Curated Resources</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>Practice Exercises</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                            <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full"></div>
+                            <span>Progress Tracking</span>
+                          </div>
+                        </div>
+
+                        {/* Enhanced CTA */}
+                        <div className="flex items-center justify-center space-x-2 text-[var(--color-primary)] group-hover:text-[var(--color-primary)]/80 transition-colors">
+                          <span className="font-semibold text-lg">Start Learning</span>
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
                         </div>
                       </div>
                     </div>
@@ -946,10 +996,10 @@ const AIMentor = () => {
                 </div>
               </div>
             ) : activeMode === "doubt" ? (
-              /* Doubt Solving Interface - Side by Side Layout */
-              <div className="h-full flex">
+              /* Doubt Solving Interface - Mobile Responsive */
+              <div className="h-full flex flex-col lg:flex-row">
                 {/* Left Panel - Input Section */}
-                <div className="w-1/4 border-r border-gray-800 bg-black flex flex-col">
+                <div className="w-full lg:w-1/4 border-b lg:border-b-0 lg:border-r border-gray-800 bg-black flex flex-col">
                   <div className="p-4 border-b border-gray-800">
                     <h2 className="text-lg font-bold mb-2 flex items-center">
                       <MessageSquare className="w-5 h-5 text-[var(--color-primary)] mr-2" />
@@ -1053,6 +1103,24 @@ const AIMentor = () => {
                     </div>
 
                     {/* Starter Questions */}
+                    <div className="hidden lg:block">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Quick Start Questions
+                      </label>
+                      <div className="space-y-2">
+                        {starterQuestions.map((question, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleStarterQuestion(question)}
+                            className="w-full p-3 text-left bg-gray-950 border border-gray-700 rounded-lg hover:border-[var(--color-primary)] transition-colors text-xs text-gray-300 hover:text-white"
+                          >
+                            {question}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Send Button */}
                     <button
                       onClick={sendMessage}
                       disabled={(!query.trim() && !image && !file) || isLoading}
@@ -1071,9 +1139,6 @@ const AIMentor = () => {
                       )}
                     </button>
                   </div>
-
-                  {/* Send Button */}
-                 
                 </div>
 
                 {/* Right Panel - Conversation */}
@@ -1120,7 +1185,7 @@ const AIMentor = () => {
                             }`}
                           >
                             <div
-                              className={`max-w-4xl rounded-lg p-4 border ${
+                              className={`max-w-full lg:max-w-4xl rounded-lg p-4 border ${
                                 message.role === "user"
                                   ? "bg-gray-950 border-gray-700"
                                   : "bg-gray-950 border-gray-700"
@@ -1160,7 +1225,7 @@ const AIMentor = () => {
                                   <img
                                     src={message.image}
                                     alt="Uploaded"
-                                    className="max-w-xs rounded-lg border border-gray-600"
+                                    className="max-w-full lg:max-w-xs rounded-lg border border-gray-600"
                                   />
                                 </div>
                               )}
@@ -1205,7 +1270,7 @@ const AIMentor = () => {
                         {/* Loading Indicator */}
                         {isLoading && (
                           <div className="flex justify-start">
-                            <div className="max-w-4xl rounded-lg p-4 bg-gray-950 border border-gray-700">
+                            <div className="max-w-full lg:max-w-4xl rounded-lg p-4 bg-gray-950 border border-gray-700">
                               <div className="flex items-center space-x-3">
                                 <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center">
                                   <Bot className="w-4 h-4 text-white" />
@@ -1233,10 +1298,10 @@ const AIMentor = () => {
                 </div>
               </div>
             ) : (
-              /* Learning Path Interface - Side by Side Layout */
-              <div className="h-full flex">
+              /* Learning Path Interface - Mobile Responsive */
+              <div className="h-full flex flex-col lg:flex-row">
                 {/* Left Panel - Input Section */}
-                <div className="w-1/4 border-r border-gray-800 bg-black flex flex-col">
+                <div className="w-full lg:w-1/4 border-b lg:border-b-0 lg:border-r border-gray-800 bg-black flex flex-col">
                   <div className="p-4 border-b border-gray-800">
                     <h2 className="text-lg font-bold mb-2 flex items-center">
                       <BookMarked className="w-5 h-5 text-[var(--color-primary)] mr-2" />
@@ -1510,7 +1575,7 @@ const AIMentor = () => {
                             <img
                               src={learningPath.image_url}
                               alt={learningPath.topic}
-                              className="max-w-4xl w-full rounded-lg border border-gray-600"
+                              className="max-w-full lg:max-w-4xl w-full rounded-lg border border-gray-600"
                             />
                           </div>
                         )}
@@ -1677,7 +1742,7 @@ const AIMentor = () => {
                                             key={exIndex}
                                             className="text-gray-400 text-xs flex items-start space-x-1"
                                           >
-                                            <div className="w-1 h-1 bg-[var(--color-primary)] rounded-full mt=2 flex-shrink-0"></div>
+                                            <div className="w-1 h-1 bg-[var(--color-primary)] rounded-full mt-2 flex-shrink-0"></div>
                                             <span className="leading-relaxed">
                                               {exercise}
                                             </span>
@@ -1689,7 +1754,7 @@ const AIMentor = () => {
                                 </div>
 
                                 {day.explanation && (
-                                  <div className="p-3 bg-[var(--color-primary)]/10 rounded border border-[var(--color-primary)]/20">
+                                  <div className="p-3 bg-black rounded border border-gray-900">
                                     <p className="text-gray-300 text-xs leading-relaxed">
                                       <strong className="text-white">
                                         📚 Learning Context:

@@ -55,7 +55,7 @@ const Navbar = () => {
     { title: "Concept Mastery", icon: <BookOpen />, href: "/topic" },
     { title: "CodeQuest", icon: <Code2 />, href: "/practice" },
     { title: "Quiz Challenge", icon: <Brain />, href: "/quizzes" },
-    { title: "Progress Hub", icon: <BarChart3 />, href: "#" },
+    // { title: "Progress Hub", icon: <BarChart3 />, href: "#" },
     { title: "AI Mentor", icon: <MessageCircle />, href: "/aimentor" },
   ];
 
