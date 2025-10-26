@@ -1053,30 +1053,10 @@ const AIMentor = () => {
                     </div>
 
                     {/* Starter Questions */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Quick Start Questions
-                      </label>
-                      <div className="space-y-2">
-                        {starterQuestions.map((question, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleStarterQuestion(question)}
-                            className="w-full p-3 text-left bg-gray-950 border border-gray-700 rounded-lg hover:border-[var(--color-primary)] transition-colors text-xs text-gray-300 hover:text-white"
-                          >
-                            {question}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Send Button */}
-                  <div className="p-4 border-t border-gray-800">
                     <button
                       onClick={sendMessage}
                       disabled={(!query.trim() && !image && !file) || isLoading}
-                      className="w-full py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors font-medium text-sm flex items-center justify-center space-x-2"
+                      className="w-full py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 disabled:bg-gray-800 disabled:cursor-not-allowed disabled:border-gray-800 rounded-lg transition-colors font-medium text-sm flex items-center justify-center space-x-2"
                     >
                       {isLoading ? (
                         <>
@@ -1091,6 +1071,9 @@ const AIMentor = () => {
                       )}
                     </button>
                   </div>
+
+                  {/* Send Button */}
+                 
                 </div>
 
                 {/* Right Panel - Conversation */}
