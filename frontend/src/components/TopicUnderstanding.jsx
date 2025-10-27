@@ -679,10 +679,10 @@ const TopicUnderstanding = () => {
                   key={stage.id}
                   className={`flex items-center p-4 rounded-lg border transition-all duration-500 ${
                     isActive
-                      ? "bg-gray-800 border-[var(--color-primary)]/50 shadow-lg shadow-[var(--color-primary)]/10"
+                      ? "bg-gray-950 border-[var(--color-primary)]/50 shadow-lg shadow-[var(--color-primary)]/10"
                       : isCompleted
-                      ? "bg-gray-800/50 border-green-500/20"
-                      : "bg-gray-900/30 border-gray-700/30 opacity-60"
+                      ? "bg-gray-950 border-green-500/20"
+                      : "bg-gray-950 border-gray-700/30 opacity-60"
                   }`}
                 >
                   <div

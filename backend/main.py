@@ -271,11 +271,18 @@ def fetch_dsa_resources(concept: str):
 
     return image_url, sources
 
-
-
-
+import uuid
+from typing import Dict,Any
+class LearningPathResponse(BaseModel):
+    id: str
+    topic: str
+    level: str
+    image_url: Optional[str]
+    sources: Optional[List[Dict[str, str]]]
+    learning_plan: Dict[str, Any]
+    created_at: str
 @app.post("/api/mentor/learning-path")
-def generate_topic_learning_path(payload: LearningPathRequest):
+def generate_topic_learning_path(payload: LearningPathRequest, current_user = Depends(get_current_user)):
     try:
         topic = payload.topic
         subtopics = payload.subtopics or []
@@ -332,12 +339,55 @@ def generate_topic_learning_path(payload: LearningPathRequest):
         # Clean and parse the response
         learning_plan = parse_groq_response(response_text)
 
+        # Generate unique ID for the learning path
+        learning_path_id = str(uuid.uuid4())
+
+        # Store learning path in database
+        with engine.begin() as conn:
+            # Insert into learning_paths table
+            conn.execute(
+                text("""
+                    INSERT INTO public.learning_paths 
+                    (id, user_id, topic, level, image_url, sources, learning_plan)
+                    VALUES (:id, :user_id, :topic, :level, :image_url, :sources, :learning_plan)
+                """),
+                {
+                    "id": learning_path_id,
+                    "user_id": current_user.id,
+                    "topic": topic,
+                    "level": level,
+                    "image_url": image_url,
+                    "sources": json.dumps(sources) if sources else None,
+                    "learning_plan": json.dumps(learning_plan)
+                }
+            )
+
+            # Update user's profile to include this learning path ID
+            profile = current_user.profile if current_user.profile else {}
+            learning_paths_list = profile.get("learning_paths", [])
+            
+            # Add the new learning path ID to the list if not already present
+            if learning_path_id not in learning_paths_list:
+                learning_paths_list.append(learning_path_id)
+                profile["learning_paths"] = learning_paths_list
+                
+                # Update user profile
+                conn.execute(
+                    text("UPDATE public.users SET profile = :profile WHERE id = :user_id"),
+                    {
+                        "profile": json.dumps(profile),
+                        "user_id": current_user.id
+                    }
+                )
+
         return {
+            "id": learning_path_id,
             "topic": topic,
             "level": level,
             "image_url": image_url,
             "sources": sources,
-            "learning_plan": learning_plan
+            "learning_plan": learning_plan,
+            "message": "Learning path generated and saved successfully"
         }
 
     except Exception as e:
@@ -371,3 +421,373 @@ def parse_groq_response(response_text: str) -> dict:
             logging.error(f"Failed to parse JSON response: {e}")
             logging.error(f"Response text: {response_text}")
             return {"overview": response_text}
+
+
+
+
+
+
+
+
+
+# Add these imports at the top of your main.py
+from sqlalchemy import text
+import json
+from typing import List, Dict, Any
+
+# Quiz Attempts API Endpoints
+@app.get("/api/quiz/attempts")
+def get_user_quiz_attempts(current_user=Depends(get_current_user)):
+    """Get all quiz attempts for the current user."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""
+                    SELECT id, user_id, quiz_id, quiz_data, user_answers, 
+                           evaluation_result, score, correct_answers, total_questions, 
+                           attempted_at
+                    FROM public.quiz_attempts 
+                    WHERE user_id = :user_id
+                    ORDER BY attempted_at DESC
+                """),
+                {"user_id": current_user.id}
+            )
+            
+            attempts = []
+            for row in result:
+                # Parse JSON fields
+                quiz_data = row.quiz_data if row.quiz_data else {}
+                user_answers = row.user_answers if row.user_answers else {}
+                evaluation_result = row.evaluation_result if row.evaluation_result else {}
+                
+                attempts.append({
+                    "id": str(row.id),
+                    "user_id": str(row.user_id),
+                    "quiz_id": row.quiz_id,
+                    "quiz_data": quiz_data,
+                    "user_answers": user_answers,
+                    "evaluation_result": evaluation_result,
+                    "score": float(row.score),
+                    "correct_answers": row.correct_answers,
+                    "total_questions": row.total_questions,
+                    "attempted_at": row.attempted_at.isoformat() if row.attempted_at else None
+                })
+            
+            return {
+                "user_id": str(current_user.id),
+                "total_attempts": len(attempts),
+                "attempts": attempts
+            }
+    
+    except Exception as e:
+        logging.error(f"Error fetching quiz attempts: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching quiz attempts: {str(e)}")
+
+@app.get("/api/quiz/attempts/{attempt_id}")
+def get_quiz_attempt_details(attempt_id: str, current_user=Depends(get_current_user)):
+    """Get detailed information about a specific quiz attempt."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""
+                    SELECT id, user_id, quiz_id, quiz_data, user_answers, 
+                           evaluation_result, score, correct_answers, total_questions, 
+                           attempted_at
+                    FROM public.quiz_attempts 
+                    WHERE id = :id AND user_id = :user_id
+                """),
+                {
+                    "id": attempt_id,
+                    "user_id": current_user.id
+                }
+            )
+            
+            attempt = result.fetchone()
+            if not attempt:
+                raise HTTPException(status_code=404, detail="Quiz attempt not found")
+            
+            # Parse JSON fields
+            quiz_data = attempt.quiz_data if attempt.quiz_data else {}
+            user_answers = attempt.user_answers if attempt.user_answers else {}
+            evaluation_result = attempt.evaluation_result if attempt.evaluation_result else {}
+            
+            return {
+                "id": str(attempt.id),
+                "user_id": str(attempt.user_id),
+                "quiz_id": attempt.quiz_id,
+                "quiz_data": quiz_data,
+                "user_answers": user_answers,
+                "evaluation_result": evaluation_result,
+                "score": float(attempt.score),
+                "correct_answers": attempt.correct_answers,
+                "total_questions": attempt.total_questions,
+                "attempted_at": attempt.attempted_at.isoformat() if attempt.attempted_at else None
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error fetching quiz attempt details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching quiz attempt details: {str(e)}")
+
+@app.get("/api/quiz/statistics")
+def get_user_quiz_statistics(current_user=Depends(get_current_user)):
+    """Get quiz statistics for the current user."""
+    try:
+        with engine.connect() as conn:
+            # Get basic statistics from quiz_attempts table
+            result = conn.execute(
+                text("""
+                    SELECT 
+                        COUNT(*) as total_attempts,
+                        AVG(score) as average_score,
+                        MAX(score) as best_score,
+                        MIN(score) as worst_score,
+                        SUM(CASE WHEN score >= 70 THEN 1 ELSE 0 END) as passed_quizzes
+                    FROM public.quiz_attempts 
+                    WHERE user_id = :user_id
+                """),
+                {"user_id": current_user.id}
+            )
+            
+            stats = result.fetchone()
+            
+            # Get recent attempts
+            recent_result = conn.execute(
+                text("""
+                    SELECT quiz_id, score, attempted_at
+                    FROM public.quiz_attempts 
+                    WHERE user_id = :user_id
+                    ORDER BY attempted_at DESC
+                    LIMIT 5
+                """),
+                {"user_id": current_user.id}
+            )
+            
+            recent_attempts = []
+            for row in recent_result:
+                recent_attempts.append({
+                    "quiz_id": row.quiz_id,
+                    "score": float(row.score),
+                    "attempted_at": row.attempted_at.isoformat() if row.attempted_at else None
+                })
+            
+            return {
+                "user_id": str(current_user.id),
+                "statistics": {
+                    "total_attempts": stats.total_attempts or 0,
+                    "average_score": round(float(stats.average_score or 0), 2),
+                    "best_score": round(float(stats.best_score or 0), 2),
+                    "worst_score": round(float(stats.worst_score or 0), 2),
+                    "passed_quizzes": stats.passed_quizzes or 0,
+                    "success_rate": round((stats.passed_quizzes or 0) / (stats.total_attempts or 1) * 100, 2) if stats.total_attempts else 0
+                },
+                "recent_attempts": recent_attempts
+            }
+    
+    except Exception as e:
+        logging.error(f"Error fetching quiz statistics: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching quiz statistics: {str(e)}")
+
+@app.delete("/api/quiz/attempts/{attempt_id}")
+def delete_quiz_attempt(attempt_id: str, current_user=Depends(get_current_user)):
+    """Delete a specific quiz attempt."""
+    try:
+        with engine.begin() as conn:
+            # First check if the attempt exists and belongs to the user
+            result = conn.execute(
+                text("SELECT id FROM public.quiz_attempts WHERE id = :id AND user_id = :user_id"),
+                {
+                    "id": attempt_id,
+                    "user_id": current_user.id
+                }
+            )
+            
+            if not result.fetchone():
+                raise HTTPException(status_code=404, detail="Quiz attempt not found")
+            
+            # Delete the attempt
+            conn.execute(
+                text("DELETE FROM public.quiz_attempts WHERE id = :id AND user_id = :user_id"),
+                {
+                    "id": attempt_id,
+                    "user_id": current_user.id
+                }
+            )
+            
+            return {"message": "Quiz attempt deleted successfully"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error deleting quiz attempt: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting quiz attempt: {str(e)}")
+
+
+
+
+
+
+
+# Add these imports at the top if not already present
+from sqlalchemy import text
+import json
+import logging
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel
+import uuid
+
+# Learning Path Models
+class LearningPathRequest(BaseModel):
+    topic: str
+    subtopics: Optional[List[str]] = []
+    level: Optional[str] = "Beginner"
+
+class LearningPathResponse(BaseModel):
+    id: str
+    topic: str
+    level: str
+    image_url: Optional[str]
+    sources: Optional[List[Dict[str, str]]]
+    learning_plan: Dict[str, Any]
+    created_at: str
+
+# Learning Path API Endpoints
+@app.get("/api/learning-paths")
+def get_user_learning_paths(current_user=Depends(get_current_user)):
+    """Get all learning paths for the current user."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""
+                    SELECT id, topic, level, image_url, sources, learning_plan, created_at
+                    FROM public.learning_paths 
+                    WHERE user_id = :user_id
+                    ORDER BY created_at DESC
+                """),
+                {"user_id": current_user.id}
+            )
+            
+            learning_paths = []
+            for row in result:
+                # Parse JSON fields
+                sources = row.sources if row.sources else []
+                learning_plan = row.learning_plan if row.learning_plan else {}
+                
+                learning_paths.append({
+                    "id": str(row.id),
+                    "topic": row.topic,
+                    "level": row.level,
+                    "image_url": row.image_url,
+                    "sources": sources,
+                    "learning_plan": learning_plan,
+                    "created_at": row.created_at.isoformat() if row.created_at else None
+                })
+            
+            return {
+                "user_id": str(current_user.id),
+                "total_paths": len(learning_paths),
+                "learning_paths": learning_paths
+            }
+    
+    except Exception as e:
+        logging.error(f"Error fetching learning paths: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching learning paths: {str(e)}")
+
+@app.get("/api/learning-paths/{path_id}")
+def get_learning_path_details(path_id: str, current_user=Depends(get_current_user)):
+    """Get detailed information about a specific learning path."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""
+                    SELECT id, topic, level, image_url, sources, learning_plan, created_at
+                    FROM public.learning_paths 
+                    WHERE id = :id AND user_id = :user_id
+                """),
+                {
+                    "id": path_id,
+                    "user_id": current_user.id
+                }
+            )
+            
+            path = result.fetchone()
+            if not path:
+                raise HTTPException(status_code=404, detail="Learning path not found")
+            
+            # Parse JSON fields
+            sources = path.sources if path.sources else []
+            learning_plan = path.learning_plan if path.learning_plan else {}
+            
+            return {
+                "id": str(path.id),
+                "topic": path.topic,
+                "level": path.level,
+                "image_url": path.image_url,
+                "sources": sources,
+                "learning_plan": learning_plan,
+                "created_at": path.created_at.isoformat() if path.created_at else None
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error fetching learning path details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching learning path details: {str(e)}")
+
+@app.delete("/api/learning-paths/{path_id}")
+def delete_learning_path(path_id: str, current_user=Depends(get_current_user)):
+    """Delete a specific learning path."""
+    try:
+        with engine.begin() as conn:
+            # First check if the path exists and belongs to the user
+            result = conn.execute(
+                text("SELECT id FROM public.learning_paths WHERE id = :id AND user_id = :user_id"),
+                {
+                    "id": path_id,
+                    "user_id": current_user.id
+                }
+            )
+            
+            if not result.fetchone():
+                raise HTTPException(status_code=404, detail="Learning path not found")
+            
+            # Delete the learning path
+            conn.execute(
+                text("DELETE FROM public.learning_paths WHERE id = :id AND user_id = :user_id"),
+                {
+                    "id": path_id,
+                    "user_id": current_user.id
+                }
+            )
+            
+            # Remove from user's profile
+            profile_result = conn.execute(
+                text("SELECT profile FROM public.users WHERE id = :user_id"),
+                {"user_id": current_user.id}
+            )
+            
+            user_profile = profile_result.fetchone()
+            if user_profile and user_profile.profile:
+                profile_data = user_profile.profile
+                learning_paths_list = profile_data.get("learning_paths", [])
+                
+                if path_id in learning_paths_list:
+                    learning_paths_list.remove(path_id)
+                    profile_data["learning_paths"] = learning_paths_list
+                    
+                    conn.execute(
+                        text("UPDATE public.users SET profile = :profile WHERE id = :user_id"),
+                        {
+                            "profile": json.dumps(profile_data),
+                            "user_id": current_user.id
+                        }
+                    )
+            
+            return {"message": "Learning path deleted successfully"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error deleting learning path: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting learning path: {str(e)}")

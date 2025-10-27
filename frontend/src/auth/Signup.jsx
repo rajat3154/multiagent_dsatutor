@@ -107,9 +107,9 @@ const API_URL = import.meta.env.VITE_BACKEND_URL;
           problems_solved: [],
           quizzes_solved: [],
           saved_problems: [],
-          saved_quizzes: [],
           learned_concepts: [],
           saved_documentation: [],
+          learning_paths:[],
         },
       });
 

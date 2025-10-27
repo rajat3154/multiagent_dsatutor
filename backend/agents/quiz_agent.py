@@ -95,55 +95,150 @@ def generate_quiz(request: QuizRequest) -> QuizResponse:
 
 
 def evaluate_quizzes_with_agent(quiz_id: str, answers: Dict[int, Any]) -> EvaluationResult:
-    """Evaluate quiz answers dynamically using an LLM."""
+    """Evaluate quiz answers dynamically using an LLM with better error handling."""
     if quiz_id not in quizzes_db:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     quiz = quizzes_db[quiz_id]
+    
     try:
+        # Prepare quiz questions in a clean format
+        quiz_questions = []
+        for q in quiz.questions:
+            question_data = {
+                "id": q.id,
+                "type": q.type,
+                "question": q.question,
+                "options": q.options if q.options else [],
+                "correct_answer": q.correct_answer,
+                "explanation": q.explanation
+            }
+            quiz_questions.append(question_data)
+
         prompt = f"""
-        You are an expert teacher. Evaluate the following quiz answers.
+        You are an expert teacher evaluating quiz answers. Be fair and constructive.
 
-        QUIZ QUESTIONS:
-        {json.dumps([q.dict() for q in quiz.questions], indent=2)}
+        QUIZ INFO:
+        - Title: {quiz.title}
+        - Description: {quiz.description}
+        - Total Questions: {len(quiz.questions)}
 
-        USER ANSWERS:
-        {json.dumps(answers, indent=2)}
+        QUESTIONS AND CORRECT ANSWERS:
+        {json.dumps(quiz_questions, indent=2, ensure_ascii=False)}
 
-        Return ONLY a valid JSON object with:
-        - score (0–100)
-        - correct_answers (int)
-        - total_questions (int)
-        - feedback (dict mapping question id → feedback string)
-        - recommendations (string)
-        NO extra text, explanations, or markdown formatting.
+        USER'S ANSWERS:
+        {json.dumps(answers, indent=2, ensure_ascii=False)}
+
+        EVALUATION INSTRUCTIONS:
+        1. Compare each user answer with the correct answer
+        2. For MCQ: Check if the selected option index matches the correct_answer index
+        3. For text answers: Check if the meaning matches (be lenient with phrasing)
+        4. Calculate score as (correct_answers / total_questions) * 100
+        5. Provide specific feedback for each question
+        6. Give overall recommendations for improvement
+
+        RETURN FORMAT (JSON only):
+        {{
+            "score": 85.0,
+            "correct_answers": 4,
+            "total_questions": 5,
+            "feedback": {{
+                "1": "Good job! Your answer is correct.",
+                "2": "Incorrect. Remember that arrays are zero-indexed.",
+                "3": "Partially correct, but missing the edge case."
+            }},
+            "recommendation": "Focus on array manipulation methods. Practice more with slice operations."
+        }}
+
+        Important: Return ONLY valid JSON, no additional text.
         """
 
         response = client.chat.completions.create(
             model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=10000
+            temperature=0.1,  # Lower temperature for more consistent evaluation
+            max_tokens=2000
         )
 
         raw_output = response.choices[0].message.content.strip()
+        
+        # Clean the response
         cleaned_output = re.sub(r"^```(?:json)?|```$", "", raw_output, flags=re.MULTILINE).strip()
-        json_match = re.search(r"\{[\s\S]*\}", cleaned_output)
+        
+        # Try to extract JSON
+        json_match = re.search(r"\{.*\}", cleaned_output, re.DOTALL)
         if not json_match:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Invalid JSON format in model response: {raw_output[:200]}"
-            )
-
+            # Fallback: create basic evaluation
+            return create_fallback_evaluation(quiz, answers)
+        
         json_str = json_match.group(0)
+        
         try:
             result_data = json.loads(json_str)
-        except json.JSONDecodeError:
-            json_str = re.sub(r",\s*}", "}", json_str)
-            json_str = re.sub(r",\s*]", "]", json_str)
-        return EvaluationResult(**result_data)
-
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"JSON parsing failed: {str(e)} | Raw: {raw_output[:200]}")
+            
+            # Validate required fields
+            required_fields = ["score", "correct_answers", "total_questions", "feedback"]
+            for field in required_fields:
+                if field not in result_data:
+                    return create_fallback_evaluation(quiz, answers)
+            
+            return EvaluationResult(**result_data)
+            
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON parsing failed: {str(e)}")
+            logging.error(f"Raw response: {raw_output[:500]}")
+            return create_fallback_evaluation(quiz, answers)
+            
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error evaluating quiz: {str(e)}")
+        logging.error(f"Error in evaluate_quizzes_with_agent: {str(e)}")
+        return create_fallback_evaluation(quiz, answers)
+
+
+def create_fallback_evaluation(quiz: QuizResponse, answers: Dict[int, Any]) -> EvaluationResult:
+    """Create a basic evaluation when LLM evaluation fails."""
+    try:
+        total_questions = len(quiz.questions)
+        correct_answers = 0
+        feedback = {}
+        
+        # Simple evaluation logic
+        for question in quiz.questions:
+            user_answer = answers.get(question.id)
+            if user_answer is not None:
+                if question.type == "mcq":
+                    # For MCQ, compare the selected option index
+                    if user_answer == question.correct_answer:
+                        correct_answers += 1
+                        feedback[question.id] = "Correct! " + question.explanation
+                    else:
+                        feedback[question.id] = f"Incorrect. {question.explanation}"
+                else:
+                    # For text answers, do simple string comparison
+                    if str(user_answer).strip().lower() == str(question.correct_answer).strip().lower():
+                        correct_answers += 1
+                        feedback[question.id] = "Correct! " + question.explanation
+                    else:
+                        feedback[question.id] = f"Expected: {question.correct_answer}. {question.explanation}"
+            else:
+                feedback[question.id] = "No answer provided. " + question.explanation
+        
+        score = (correct_answers / total_questions) * 100 if total_questions > 0 else 0
+        
+        return EvaluationResult(
+            score=round(score, 2),
+            correct_answers=correct_answers,
+            total_questions=total_questions,
+            feedback=feedback,
+            recommendation="Keep practicing to improve your understanding!"
+        )
+        
+    except Exception as e:
+        logging.error(f"Error in fallback evaluation: {str(e)}")
+        # Ultimate fallback
+        return EvaluationResult(
+            score=0,
+            correct_answers=0,
+            total_questions=len(quiz.questions),
+            feedback={},
+            recommendation="Evaluation service temporarily unavailable. Please try again."
+        )

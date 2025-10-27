@@ -22,9 +22,9 @@ def signup(user:SignupRequest):
     "problems_solved": [],
     "quizzes_solved": [],
     "saved_problems": [],
-    "saved_quizzes": [],
     "learned_concepts": [],
-    "saved_documentation": []
+    "saved_documentation": [],
+    'learning_paths':[]
 }
             conn.execute(
                 text(
