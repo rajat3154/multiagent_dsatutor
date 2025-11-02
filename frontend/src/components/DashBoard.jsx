@@ -485,7 +485,7 @@ const Dashboard = () => {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+        <div className="min-h-screen bg-black text-white">
           <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-center h-96">
               <div className="text-center">
@@ -504,7 +504,7 @@ const Dashboard = () => {
     return (
       <>
         <Navbar />
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+        <div className="min-h-screen bg-black text-white">
           <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             <div className="bg-red-900/20 border border-red-800/50 rounded-2xl p-6 text-center">
               <XCircle className="w-12 h-12 md:w-16 md:h-16 text-red-400 mx-auto mb-4" />
@@ -588,7 +588,7 @@ const Dashboard = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+      <div className="min-h-screen bg-black  text-white">
         {/* Header */}
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
