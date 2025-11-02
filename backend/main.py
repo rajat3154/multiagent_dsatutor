@@ -38,7 +38,9 @@ def startup_event():
     except Exception as e:
         print("❌ Database connection failed:", e)
 
-
+@app.get("/health")
+def health():
+    return {"message": "Server is running smoothly!"}
 @app.post("/signup")
 def signsup(user: SignupRequest):
     return signup(user)
