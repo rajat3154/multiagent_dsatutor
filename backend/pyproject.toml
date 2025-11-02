@@ -6,9 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "arxiv>=2.2.0",
+    "asyncpg>=0.30.0",
     "bcrypt==4.0.1",
     "bs4>=0.0.2",
     "cloudinary>=1.44.1",
+    "docker>=7.1.0",
     "dotenv>=0.9.9",
     "fastapi>=0.116.1",
     "google>=3.0.0",
