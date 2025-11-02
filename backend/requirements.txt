@@ -19,3 +19,4 @@ wikipedia
 arxiv
 google-generativeai
 asyncpg
+docker
