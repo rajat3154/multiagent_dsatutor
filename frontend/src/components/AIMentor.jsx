@@ -69,11 +69,11 @@ const AIMentor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Learning Path States
+  // Learning Path States - FIXED: Proper initial state
   const [learningForm, setLearningForm] = useState({
-    topic: "Dynamic Programming",
-    subtopics: "Recursion, Memoization, Tabulation",
-    level: "Intermediate",
+    topic: "",
+    subtopics: "",
+    level: "Beginner",
   });
 
   const [learningPath, setLearningPath] = useState(null);
@@ -147,7 +147,7 @@ const AIMentor = () => {
     }
   };
 
-  // Edit handlers
+  // Edit handlers - FIXED: Proper state updates
   const handleEditTopic = () => {
     setCustomTopic(learningForm.topic);
     setIsEditingTopic(true);
@@ -647,9 +647,14 @@ const AIMentor = () => {
     };
   };
 
-  // Generate Learning Path
+  // Generate Learning Path - FIXED: Proper validation
   const generateLearningPath = async () => {
-    if (!learningForm.topic.trim()) {
+    const topic = learningForm.topic.trim();
+    
+    console.log("Current learningForm:", learningForm);
+    console.log("Topic value:", topic);
+    
+    if (!topic) {
       setError("Please enter a topic");
       return;
     }
@@ -670,12 +675,14 @@ const AIMentor = () => {
 
     try {
       const payload = {
-        topic: learningForm.topic,
+        topic: topic,
         subtopics: learningForm.subtopics
           ? learningForm.subtopics.split(",").map((s) => s.trim())
           : [],
         level: learningForm.level,
       };
+
+      console.log("Sending learning path request:", payload);
 
       const response = await fetch(`${API_URL}/api/mentor/learning-path`, {
         method: "POST",
@@ -696,9 +703,11 @@ const AIMentor = () => {
 
       const data = await response.json();
 
+      console.log("Received learning path:", data);
+
       // Create complete learning path object with properly formatted data
       const completeLearningPath = {
-        topic: data.topic || learningForm.topic,
+        topic: data.topic || topic,
         level: data.level || learningForm.level,
         image_url:
           data.image_url ||
@@ -1314,7 +1323,7 @@ const AIMentor = () => {
 
                   <div className="flex-1 p-4 overflow-y-auto space-y-4">
                     {!learningPath ? (
-                      // Learning Path Form
+                      // Learning Path Form - SIMPLIFIED VERSION
                       <div className="space-y-4">
                         {/* Error Display */}
                         {error && (
@@ -1328,86 +1337,38 @@ const AIMentor = () => {
                           </div>
                         )}
 
-                        {/* Topic Input */}
+                        {/* Topic Input - SIMPLIFIED: Direct input without edit mode */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center justify-between">
-                            <span>Topic *</span>
-                            {!isEditingTopic && (
-                              <button
-                                onClick={handleEditTopic}
-                                className="text-gray-400 hover:text-[var(--color-primary)] p-1"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                              </button>
-                            )}
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Topic *
                           </label>
-                          {isEditingTopic ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                ref={topicInputRef}
-                                type="text"
-                                value={customTopic}
-                                onChange={(e) => setCustomTopic(e.target.value)}
-                                onKeyDown={(e) => handleFormKeyPress(e, "topic")}
-                                className="w-full p-3 bg-gray-950 border border-[var(--color-primary)]/50 rounded-lg focus:outline-none text-sm"
-                              />
-                              <button
-                                onClick={handleSaveTopic}
-                                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-900/20 rounded-lg"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div
-                              className="w-full p-3 bg-gray-950 border border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors text-sm"
-                              onClick={handleEditTopic}
-                            >
-                              {learningForm.topic}
-                            </div>
-                          )}
+                          <input
+                            type="text"
+                            value={learningForm.topic}
+                            onChange={(e) => setLearningForm(prev => ({
+                              ...prev,
+                              topic: e.target.value
+                            }))}
+                            className="w-full p-3 bg-gray-950 border border-gray-700 rounded-lg focus:outline-none focus:border-[var(--color-primary)] text-sm"
+                            placeholder="Enter your topic (e.g., Arrays, Strings, OOP)"
+                          />
                         </div>
 
-                        {/* Subtopic Input */}
+                        {/* Subtopic Input - SIMPLIFIED: Direct input without edit mode */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center justify-between">
-                            <span>Specific Subtopics (Optional)</span>
-                            {!isEditingSubtopic && (
-                              <button
-                                onClick={handleEditSubtopic}
-                                className="text-gray-400 hover:text-[var(--color-primary)] p-1"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                              </button>
-                            )}
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Specific Subtopics (Optional)
                           </label>
-                          {isEditingSubtopic ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                ref={subtopicInputRef}
-                                type="text"
-                                value={customSubtopic}
-                                onChange={(e) =>
-                                  setCustomSubtopic(e.target.value)
-                                }
-                                onKeyDown={(e) => handleFormKeyPress(e, "subtopic")}
-                                className="w-full p-3 bg-gray-950 border border-[var(--color-primary)]/50 rounded-lg focus:outline-none text-sm"
-                              />
-                              <button
-                                onClick={handleSaveSubtopic}
-                                className="p-2 text-green-400 hover:text-green-300 hover:bg-green-900/20 rounded-lg"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div
-                              className="w-full p-3 bg-gray-950 border border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors text-sm"
-                              onClick={handleEditSubtopic}
-                            >
-                              {learningForm.subtopics}
-                            </div>
-                          )}
+                          <input
+                            type="text"
+                            value={learningForm.subtopics}
+                            onChange={(e) => setLearningForm(prev => ({
+                              ...prev,
+                              subtopics: e.target.value
+                            }))}
+                            className="w-full p-3 bg-gray-950 border border-gray-700 rounded-lg focus:outline-none focus:border-[var(--color-primary)] text-sm"
+                            placeholder="e.g., sorting, searching, operations"
+                          />
                         </div>
 
                         {/* Level Selection */}
@@ -1439,18 +1400,24 @@ const AIMentor = () => {
                           </div>
                         </div>
 
-                        {/* Generate Button */}
+                        {/* Generate Button - FIXED: Now properly enabled when topic has value */}
                         <button
                           onClick={generateLearningPath}
-                          disabled={
-                            !learningForm.topic.trim() || isGeneratingPath
-                          }
-                          className="w-full py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors font-medium text-sm flex items-center justify-center space-x-2"
+                          disabled={!learningForm.topic.trim() || isGeneratingPath}
+                          className={`
+                            w-full py-3 rounded-lg font-medium text-sm 
+                            flex items-center justify-center space-x-2
+                            transition-all duration-200
+                            ${!learningForm.topic.trim() || isGeneratingPath
+                              ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                              : "bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white shadow-lg hover:shadow-xl transform hover:scale-105"
+                            }
+                          `}
                         >
                           {isGeneratingPath ? (
                             <>
                               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              <span>Generating Path...</span>
+                              <span>Generating Learning Path...</span>
                             </>
                           ) : (
                             <>
@@ -1459,6 +1426,13 @@ const AIMentor = () => {
                             </>
                           )}
                         </button>
+
+                        {/* Debug Info - Remove in production */}
+                        <div className="bg-gray-950 p-2 rounded text-xs text-gray-400">
+                          <div>Topic: "{learningForm.topic}"</div>
+                          <div>Topic trimmed: "{learningForm.topic.trim()}"</div>
+                          <div>Is topic empty: {!learningForm.topic.trim() ? "Yes" : "No"}</div>
+                        </div>
                       </div>
                     ) : (
                       // Learning Path Actions
@@ -1742,7 +1716,7 @@ const AIMentor = () => {
                                             key={exIndex}
                                             className="text-gray-400 text-xs flex items-start space-x-1"
                                           >
-                                            <div className="w-1 h-1 bg-[var(--color-primary)] rounded-full mt-2 flex-shrink-0"></div>
+                                            <div className="w-1 h-1 bg-[var(--color-primary)] rounded-full mt=2 flex-shrink-0"></div>
                                             <span className="leading-relaxed">
                                               {exercise}
                                             </span>
