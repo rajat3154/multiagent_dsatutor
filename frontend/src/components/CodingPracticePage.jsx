@@ -36,6 +36,7 @@ import {
 import Navbar from "@/shared/Navbar";
 import { UserContext } from "@/contexts/UserContext";
 import { Editor } from "@monaco-editor/react";
+
 const CodingPracticePage = () => {
   const { user } = useContext(UserContext);
   const [dsTopic, setDsTopic] = useState("");
@@ -292,10 +293,14 @@ const CodingPracticePage = () => {
   // Check for mobile on mount and resize
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
         setIsSidebarOpen(false);
         setEditorHeight(50);
+      } else {
+        setIsSidebarOpen(true);
+        setEditorHeight(60);
       }
     };
 
@@ -658,42 +663,6 @@ const CodingPracticePage = () => {
     return `solution.${lang?.extension || "py"}`;
   };
 
-  // Code editor component
-  const CodeEditor = ({ code, setCode, language }) => {
-    const handleCodeChange = (e) => {
-      setCode(e.target.value);
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === "Tab") {
-        e.preventDefault();
-        const start = e.target.selectionStart;
-        const end = e.target.selectionEnd;
-        const newCode = code.substring(0, start) + "  " + code.substring(end);
-        setCode(newCode);
-        setTimeout(() => {
-          e.target.selectionStart = e.target.selectionEnd = start + 2;
-        }, 0);
-      }
-    };
-
-    return (
-      <div className="relative h-full bg-black">
-        <textarea
-          value={code}
-          onChange={handleCodeChange}
-          onKeyDown={handleKeyDown}
-          className="w-full h-full bg-black p-4 font-mono text-sm outline-none resize-none text-white caret-white"
-          style={{
-            tabSize: 2,
-          }}
-          spellCheck="false"
-          placeholder="Write your code here..."
-        />
-      </div>
-    );
-  };
-
   // Render hint section
   const renderHint = () => {
     if (!testResults?.hint || !showHint) return null;
@@ -764,7 +733,7 @@ const CodingPracticePage = () => {
         >
           {/* Mobile header */}
           {isMobile && isSidebarOpen && (
-            <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black">
               <h2 className="font-bold text-lg">Coding Practice</h2>
               <button
                 onClick={() => setIsSidebarOpen(false)}
@@ -777,7 +746,7 @@ const CodingPracticePage = () => {
 
           {/* Desktop header */}
           {!isMobile && (
-            <div className="p-4 border-b border-gray-800">
+            <div className="p-4 border-b border-gray-800 bg-black">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-lg">Coding Practice</h2>
                 <button
@@ -790,7 +759,7 @@ const CodingPracticePage = () => {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-black">
             <div className="p-4 space-y-4">
               {/* Authentication Warning */}
               {!isAuthenticated && (
@@ -933,7 +902,7 @@ const CodingPracticePage = () => {
                   <h3 className="font-bold text-lg mb-3 text-white">
                     Generated Problems ({problems.length})
                   </h3>
-                  <div className="space-y-2 max-h-96 ">
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
                     {problems.map((problem) => (
                       <div
                         key={problem.id}
@@ -1013,9 +982,9 @@ const CodingPracticePage = () => {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-black">
           {/* Top Bar */}
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+          <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-black">
             <div className="flex items-center">
               {!isSidebarOpen && !isMobile && (
                 <button
@@ -1059,7 +1028,7 @@ const CodingPracticePage = () => {
 
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* Problem Description */}
-            <div className="w-full md:w-1/2 overflow-y-auto p-4 md:p-6 border-b md:border-r border-gray-800 custom-scrollbar">
+            <div className="w-full md:w-1/2 overflow-y-auto p-4 md:p-6 border-b md:border-r border-gray-800 custom-scrollbar bg-black">
               {selectedProblem ? (
                 <div className="prose prose-invert max-w-none">
                   <h3 className="text-lg font-bold mb-4 flex items-center text-white">
@@ -1147,13 +1116,13 @@ const CodingPracticePage = () => {
             </div>
 
             {/* Code Editor and Results Section */}
-            <div className="w-full md:w-1/2 flex flex-col editor-results-container">
+            <div className="w-full md:w-1/2 flex flex-col editor-results-container bg-black">
               {/* Code Editor Section */}
               <div
-                className="flex flex-col border-b border-gray-800"
+                className="flex flex-col border-b border-gray-800 bg-black"
                 style={{ height: `${editorHeight}%`, minHeight: "30%" }}
               >
-                <div className="p-4 border-b border-gray-800 flex items-center justify-between flex-shrink-0">
+                <div className="p-4 border-b border-gray-800 flex items-center justify-between flex-shrink-0 bg-black">
                   <div className="flex items-center">
                     <div className="text-sm font-medium hidden sm:block text-white">
                       {getFileName()}
@@ -1211,7 +1180,7 @@ const CodingPracticePage = () => {
                     </button>
                   </div>
                 </div>
-                <div className="flex-1 overflow-hidden relative">
+                <div className="flex-1 overflow-hidden relative bg-black">
                   <Editor
                     height="100%"
                     language={language}
@@ -1361,7 +1330,7 @@ const CodingPracticePage = () => {
                 </div>
 
                 {/* Buttons */}
-                <div className="p-4 border-t border-gray-800 flex items-center justify-between flex-wrap gap-2 flex-shrink-0">
+                <div className="p-4 border-t border-gray-800 flex items-center justify-between flex-wrap gap-2 flex-shrink-0 bg-black">
                   <div className="flex items-center space-x-2">
                     <button
                       className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-400 text-white font-medium py-2 px-3 sm:px-4 rounded transition-colors flex items-center text-sm"
@@ -1735,6 +1704,43 @@ const CodingPracticePage = () => {
 
           .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: rgba(107, 114, 128, 0.7);
+          }
+
+          /* Mobile-specific optimizations */
+          @media (max-width: 768px) {
+            .editor-results-container {
+              height: 100vh !important;
+            }
+            
+            .prose {
+              font-size: 0.875rem;
+            }
+            
+            .prose h3 {
+              font-size: 1.125rem;
+            }
+            
+            .prose h4 {
+              font-size: 1rem;
+            }
+            
+            .code-block-wrapper pre {
+              font-size: 0.75rem;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .prose {
+              font-size: 0.8rem;
+            }
+            
+            .prose h3 {
+              font-size: 1rem;
+            }
+            
+            .prose h4 {
+              font-size: 0.9rem;
+            }
           }
         `}</style>
       </div>

@@ -1112,22 +1112,7 @@ const AIMentor = () => {
                     </div>
 
                     {/* Starter Questions */}
-                    <div className="hidden lg:block">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Quick Start Questions
-                      </label>
-                      <div className="space-y-2">
-                        {starterQuestions.map((question, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleStarterQuestion(question)}
-                            className="w-full p-3 text-left bg-gray-950 border border-gray-700 rounded-lg hover:border-[var(--color-primary)] transition-colors text-xs text-gray-300 hover:text-white"
-                          >
-                            {question}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    
 
                     {/* Send Button */}
                     <button
@@ -1428,11 +1413,7 @@ const AIMentor = () => {
                         </button>
 
                         {/* Debug Info - Remove in production */}
-                        <div className="bg-gray-950 p-2 rounded text-xs text-gray-400">
-                          <div>Topic: "{learningForm.topic}"</div>
-                          <div>Topic trimmed: "{learningForm.topic.trim()}"</div>
-                          <div>Is topic empty: {!learningForm.topic.trim() ? "Yes" : "No"}</div>
-                        </div>
+                        
                       </div>
                     ) : (
                       // Learning Path Actions
